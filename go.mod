@@ -9,7 +9,6 @@ require (
 	github.com/asaskevich/EventBus v0.0.0-20200907212545-49d423059eef
 	github.com/gin-gonic/gin v1.8.1
 	github.com/gorilla/websocket v1.5.0
-	github.com/streadway/amqp v1.0.0
 	github.com/xmsociety/adbutils v0.0.4
 	go.uber.org/zap v1.17.0
 	gocv.io/x/gocv v0.31.0
