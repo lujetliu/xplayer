@@ -1,0 +1,189 @@
+
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<title>websocket显示二进制图片流</title>
+		<style type="text/css">
+		</style>
+	</head>
+	<script src="https://apps.bdimg.com/libs/jquery/2.1.4/jquery.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-mousewheel/3.1.13/jquery.mousewheel.min.js" integrity="sha512-rCjfoab9CVKOH/w/T6GbBxnAH5Azhy4+q1EXW5XEURefHbIkRbQ++ZR+GBClo3/d3q583X/gO4FKmOFuhkKrdA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+	<body>
+		<h1>WebSocket播放图片</h1>
+		<img id="player" οnclick="handleClick(event)"
+			 draggable="false"
+			 style="width:496px;height:1080px;margin-left:100px"  /><br/>
+	</body>
+	<script type="text/javascript">
+		window.onload = function () {
+			if (!'WebSocket' in window) return;
+			webSocketInit();
+		};
+		function webSocketInit() {
+			// 连接到服务端端点
+			// 成功建立连接
+			websocket = new WebSocket("ws://127.0.0.1:8080");
+			websocket.onopen = function () {
+				console.log("成功连接到服务器");
+				websocket.send("成功连接到服务器");
+			};
+			// 接收到消息
+			websocket.onmessage = function (event) {
+				// 文本数据包
+				if(typeof(event.data)=="string"){
+					// JSON.parse(evt.data)
+					console.log("收到服务端发送的消息：" + event.data);
+					// 图片数据包Blob
+				}else{
+					var reader = new FileReader();
+					reader.readAsDataURL(event.data);
+					reader.onload = function(evt){
+						if(evt.target.readyState == FileReader.DONE){
+							// base64数据
+							var url = evt.target.result;
+							document.getElementById("player").src = url;
+						}
+					};
+				}
+			};
+			// 连接发生错误
+			websocket.onerror = function () {
+				console.log("WebSocket连接发生错误");
+			};
+			// 连接关闭
+			websocket.onclose = function () {
+				console.log("WebSocket连接关闭");
+			};
+			// 监听窗口关闭事件，当窗口关闭时，主动关闭websocket连接
+			window.onbeforeunload = function () {
+				websocket.close()
+			};
+		};
+
+		// 左键点击事件
+		document.getElementById("player").onclick = function(event) {
+			var xPage =  event.x + document.body.scrollLeft;
+			var yPage =  event.y + document.body.scrollTop;
+			imgEl = document.getElementById("player");
+			img_x = locationLeft(imgEl);
+			img_y = locationTop(imgEl);
+			var xPos = xPage - img_x;
+			var yPos = yPage - img_y;
+			// 当前点击位置
+			var clickEvent = {
+				is_event: 1,
+				control_type: 100,
+				x: xPos,
+				y: yPos,
+			};
+			console.log(xPos, yPos);
+			websocket.send(JSON.stringify(clickEvent));
+		};
+
+		// 长按事件
+		var isPress = 0;
+		var timeout = 0;
+		$("#player").mousedown(function(e) {
+			var rect = document.getElementById("player").getBoundingClientRect()
+			timeout= setTimeout(function() {
+				isPress = 1;
+				console.log("长按事件");
+				var pressEvent = {
+					is_event: 1,
+					control_type: 103,
+					x: e.pageX-rect.x,
+					y: e.pageY-rect.y,
+				};
+				// websocket.send(JSON.stringify(pressEvent));
+			}, 500);// 鼠标按下0.5秒后发生长按事件
+		});
+		$("#player").mouseup(function(event) {
+			if (isPress == 0 ) {
+				console.log("点击事件"); // TODO: 调用点击函数
+			};
+			isPress = 0;
+			clearTimeout(timeout);// 清理掉定时器
+		});
+		$("#player").mouseout(function() {
+			isPress= 0;
+			clearTimeout(timeout);// 清理掉定时器
+		});
+
+
+		// 鼠标滚轮事件
+		$('#player').on('mousewheel', function(event) {
+			var scrollEvent = {
+				is_event: 1,
+				control_type: 102,
+				// TODO: 控制精度
+				x: 260,
+				y: 566,
+				h: event.deltaX * event.deltaFactor,
+				v: event.deltaY * event.deltaFactor,
+			};
+			websocket.send(JSON.stringify(scrollEvent));
+		});
+
+		//找到元素的屏幕位置 
+		function locationLeft(element) {
+			var offsetTotal = element.offsetLeft;
+			var scrollTotal = 0; // element.scrollLeft but we dont want to deal with scrolling - already in page coords
+			if (element.tagName != "BODY") {
+				if (element.offsetParent != null)
+					return offsetTotal + scrollTotal + locationLeft(element.offsetParent);
+			}
+			return offsetTotal + scrollTotal;
+		};
+
+		// 找到元素的屏幕位置 
+		function locationTop(element) {
+			var offsetTotal = element.offsetTop;
+			var scrollTotal = 0; // element.scrollTop but we dont want to deal with scrolling - already in page coords
+			if (element.tagName != "BODY") {
+				if (element.offsetParent != null)
+					return offsetTotal + scrollTotal + locationTop(element.offsetParent);
+			}
+			return offsetTotal + scrollTotal;
+		};
+
+
+		// 拖拽事件
+		var diffX = 0;
+		var diffY = 0;
+		var dragbox = document.getElementById("player");
+		dragbox.onmousedown = function(e){
+			const event = e || window.event
+			// 鼠标箭头和dragbox的位置偏差
+			diffX = event.clientX - dragbox.offsetLeft;
+			diffY = event.clientY - dragbox.offsetTop;
+		};
+		dragbox.onmousemove = function(e){
+			if (isPress == 0) {
+				return;
+			}
+			const event = e || window.event;
+			let moveX = event.clientX - diffX;
+			let moveY = event.clientY - diffY;
+
+			// dragbox可移动区上的边界
+			// const desX = window.innerWidth - dragbox.offsetWidth
+			// const desY = window.innerHeight - dragbox.offsetHeight
+
+			// moveX = moveX < 0 ? 0 : moveX > desX ? desX : moveX
+			// moveY = moveY < 0 ? 0 : moveY > desY ? desX : moveY
+
+			console.log(diffX, diffY, moveX, moveY);
+			var swipeEvent = {
+				is_event: 1,
+				control_type: 104,
+				// TODO: 控制精度
+				x: diffX,
+				y: diffY,
+				end_x: moveX,
+				end_y: moveY,
+			};
+			// websocket.send(JSON.stringify(swipeEvent)); 
+		};
+	</script>
+</html>

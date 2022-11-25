@@ -1,0 +1,65 @@
+-------------------服务端使用方法---------------------------------------------------------
+1.将scrcpy根目录下scrcpy-server文件上传到手机
+adb -s 8cf051cc push E:/GOxiangmu/src/go_code/AuxControl2/win-client/scrcpy-server /data/local/tmp/AuxControl.jar
+
+2.提升权限
+adb -s 8cf051cc shell chmod 0755 /data/local/tmp/AuxControl.jar
+
+2.添加映射
+adb forward tcp:8081 localabstract:scrcpy  用来控制
+adb forward tcp:8082 localabstract:scrcpy  用来接收屏幕数据流
+adb forward --list
+
+
+3.运行手机端服务
+对于Android 8及以下版本，请在adb shell中运行此命令：（单行）
+adb shell CLASSPATH=/data/local/tmp/AuxControl.jar app_process -agentlib:jdwp=transport=dt_socket,suspend=y,server=y,address=5005 / com.genymobile.scrcpy.Server 1.24-ws5 web DEBUG 8886
+
+对于Android 9及以上版本，请在adb shell中运行此命令：（单行）
+adb shell CLASSPATH=/data/local/tmp/AuxControl.jar app_process -XjdwpProvider:internal -XjdwpOptions:transport=dt_socket,suspend=y,server=y,address=5005 / com.genymobile.scrcpy.Server 1.24-ws5 web DEBUG 8886
+
+用下面这个
+adb shell CLASSPATH=/data/local/tmp/scrcpy-server-v1.24.jar app_process / com.genymobile.scrcpy.Server 1.24 log_level=info bit_rate=2000000 tunnel_forward=true max_fps=15 control=true display_id=0 stay_awake=true
+参数说明：
+display_id  显示ID
+bit_rate  比特率
+max_fps  最大速度
+control 是否控制
+stay_awake 保持喊醒
+tunnel_forward 是否开启隧道
+port_range 端口范围
+codec_options 编码器选择
+encoder_name 编码器名称
+log_level 日志级别
+max_size
+lock_video_orientation
+lock_video_orientation 锁定视频方向
+crop
+show_touches 显示触摸
+power_off_on_close 关闭电源
+clipboard_autosync 剪切板自动同步
+downsize_on_error 
+cleanup 清理
+power_on 通电
+send_device_meta 发生设备元数据
+send_frame_meta 发送帧元数据
+send_dummy_byte 发送摘要字节
+raw_video_stream 原始视频流
+
+------------------------------------------------------------------------------------
+scrcpy-server.jar一些相关问题
+https://github.com/NetrisTV/ws-scrcpy/discussions/131
+
+------------------------------------------------------------------------------------
+scrcpy相关源代码地址
+https://github.com/Genymobile/scrcpy
+https://github.com/NetrisTV/ws-scrcpy
+https://gitee.com/Barryda/QtScrcpy?_from=gitee_search
+
+------------------------------------------------------------------------------------
+go相关代码参考
+https://github.com/ClarkGuan/scrcpy-go/blob/master/scrcpy/server.go
+
+使用相关资料
+https://blog.csdn.net/Alkaid2000/article/details/123698064
+https://blog.csdn.net/weixin_38387929/article/details/121029492
