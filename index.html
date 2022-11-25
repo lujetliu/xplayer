@@ -63,13 +63,9 @@
 
 		// 左键点击事件
 		document.getElementById("player").onclick = function(event) {
-			var xPage =  event.x + document.body.scrollLeft;
-			var yPage =  event.y + document.body.scrollTop;
-			imgEl = document.getElementById("player");
-			img_x = locationLeft(imgEl);
-			img_y = locationTop(imgEl);
-			var xPos = xPage - img_x;
-			var yPos = yPage - img_y;
+			var rect = document.getElementById("player").getBoundingClientRect()
+				var xPos = event.pageX - rect.x;
+				var yPos = event.pageY - rect.y;
 			// 当前点击位置
 			var clickEvent = {
 				is_event: 1,
@@ -77,7 +73,6 @@
 				x: xPos,
 				y: yPos,
 			};
-			console.log(xPos, yPos);
 			websocket.send(JSON.stringify(clickEvent));
 		};
 
@@ -85,17 +80,18 @@
 		var isPress = 0;
 		var timeout = 0;
 		$("#player").mousedown(function(e) {
-			var rect = document.getElementById("player").getBoundingClientRect()
+			var rect =
+				document.getElementById("player").getBoundingClientRect();
 			timeout= setTimeout(function() {
 				isPress = 1;
 				console.log("长按事件");
-				var pressEvent = {
+				var downEvent = {
 					is_event: 1,
 					control_type: 103,
 					x: e.pageX-rect.x,
 					y: e.pageY-rect.y,
 				};
-				// websocket.send(JSON.stringify(pressEvent));
+				websocket.send(JSON.stringify(downEvent));
 			}, 500);// 鼠标按下0.5秒后发生长按事件
 		});
 		$("#player").mouseup(function(event) {
@@ -112,78 +108,66 @@
 
 
 		// 鼠标滚轮事件
+		var latestX = 0;
+		var latestY = 0;
 		$('#player').on('mousewheel', function(event) {
+			var rect =
+				document.getElementById("player").getBoundingClientRect();
+			var x = event.pageX - rect.x;
+			var y = event.pageY - rect.y;
 			var scrollEvent = {
 				is_event: 1,
 				control_type: 102,
 				// TODO: 控制精度
-				x: 260,
-				y: 566,
-				h: event.deltaX * event.deltaFactor,
-				v: event.deltaY * event.deltaFactor,
+				x: x,
+				y: y,
+				h: x - latestX,
+				v: y - latestY,
 			};
+			latestX = x;
+			latestY = y;
 			websocket.send(JSON.stringify(scrollEvent));
 		});
 
-		//找到元素的屏幕位置 
-		function locationLeft(element) {
-			var offsetTotal = element.offsetLeft;
-			var scrollTotal = 0; // element.scrollLeft but we dont want to deal with scrolling - already in page coords
-			if (element.tagName != "BODY") {
-				if (element.offsetParent != null)
-					return offsetTotal + scrollTotal + locationLeft(element.offsetParent);
-			}
-			return offsetTotal + scrollTotal;
-		};
-
-		// 找到元素的屏幕位置 
-		function locationTop(element) {
-			var offsetTotal = element.offsetTop;
-			var scrollTotal = 0; // element.scrollTop but we dont want to deal with scrolling - already in page coords
-			if (element.tagName != "BODY") {
-				if (element.offsetParent != null)
-					return offsetTotal + scrollTotal + locationTop(element.offsetParent);
-			}
-			return offsetTotal + scrollTotal;
-		};
-
 
 		// 拖拽事件
-		var diffX = 0;
-		var diffY = 0;
 		var dragbox = document.getElementById("player");
 		dragbox.onmousedown = function(e){
+			var rect = document.getElementById("player").getBoundingClientRect();
 			const event = e || window.event
-			// 鼠标箭头和dragbox的位置偏差
-			diffX = event.clientX - dragbox.offsetLeft;
-			diffY = event.clientY - dragbox.offsetTop;
+			// TODO: 这里处理长按事件
 		};
 		dragbox.onmousemove = function(e){
-			if (isPress == 0) {
-				return;
-			}
+			if (isPress == 0 ) {
+				return
+			};
 			const event = e || window.event;
-			let moveX = event.clientX - diffX;
-			let moveY = event.clientY - diffY;
-
-			// dragbox可移动区上的边界
-			// const desX = window.innerWidth - dragbox.offsetWidth
-			// const desY = window.innerHeight - dragbox.offsetHeight
-
-			// moveX = moveX < 0 ? 0 : moveX > desX ? desX : moveX
-			// moveY = moveY < 0 ? 0 : moveY > desY ? desX : moveY
-
-			console.log(diffX, diffY, moveX, moveY);
-			var swipeEvent = {
+			var rect = document.getElementById("player").getBoundingClientRect();
+			var endX = event.pageX - rect.x;
+			var endY = event.pageY - rect.y;
+			var moveEvent = {
 				is_event: 1,
 				control_type: 104,
 				// TODO: 控制精度
-				x: diffX,
-				y: diffY,
-				end_x: moveX,
-				end_y: moveY,
+				x: endX,
+				y: endY,
 			};
-			// websocket.send(JSON.stringify(swipeEvent)); 
+			websocket.send(JSON.stringify(moveEvent)); 
 		};
+		dragbox.onmouseup = function(event){
+			var rect = document.getElementById("player").getBoundingClientRect();
+			var endX  = event.pageX - rect.x;
+			var endY = event.pageY - rect.y;
+
+			var upEvent = {
+				is_event: 1,
+				control_type: 105,
+				// TODO: 控制精度
+				x: endX,
+				y: endY,
+			};
+			websocket.send(JSON.stringify(upEvent)); 
+		};
+
 	</script>
 </html>

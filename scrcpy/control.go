@@ -390,3 +390,31 @@ func (control *ControlSender) Swipe(startX, startY, endX, endY, stepLength int, 
 		time.Sleep(time.Duration(delay) * time.Second)
 	}
 }
+
+func (control *ControlSender) Down(x, y, action int) {
+	control.Lock.Lock()
+	defer control.Lock.Unlock()
+
+	buf := new(bytes.Buffer)
+	var data = []interface{}{
+		uint8(TypeInjectTOUCHEvent), // base
+		uint8(action),               // B 1 byte
+		int64(-1),                   // q 8 byte
+		uint32(x),                   // i 4 byte
+		uint32(y),                   // i 4 byte
+		uint16(control.W),           // H 2 byte
+		uint16(control.H),           // H 2 byte
+		uint16(0xffff),              // H 2 byte
+		uint32(1),                   // i 4 byte
+	}
+	for _, v := range data {
+		err := binary.Write(buf, binary.BigEndian, v)
+		if err != nil {
+			fmt.Println("Touch binary.Write failed:", err)
+		}
+	}
+	_, err := control.ControlConn.Write(buf.Bytes())
+	if err != nil {
+		log.Println("send Touch error! ", err.Error())
+	}
+}

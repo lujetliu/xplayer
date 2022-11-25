@@ -179,39 +179,43 @@ func ServerH264(c *gin.Context) {
 			if err != nil {
 				continue
 			}
-			if scrollE.ScrollPosition.V < 0 {
-				scrollE.ScrollPosition.V += 48
-			} else {
-				scrollE.ScrollPosition.V -= 48
-			}
 
 			GlobalSvc.Client.Scroll(scrollE.ScrollPosition)
 		}
 
 		// 长按事件
-		if scrcpy.EventType(event.ControlType) == scrcpy.Press {
+		if scrcpy.EventType(event.ControlType) == scrcpy.Down {
 			fmt.Println("Start Press event:", event)
-			var pressE scrcpy.PressEvent
-			err := json.Unmarshal(message, &pressE)
+			var downEvent scrcpy.DownEvent
+			err := json.Unmarshal(message, &downEvent)
 			if err != nil {
 				continue
 			}
-			GlobalSvc.Client.Press(pressE.EventPosition)
+			GlobalSvc.Client.Down(downEvent.EventPosition)
 		}
 
 		// 拖拽事件
 		if scrcpy.EventType(event.ControlType) == scrcpy.Move {
-			fmt.Println("Start Swipe event:", event)
+			fmt.Println("Start Move event:", event)
 			var moveE scrcpy.MoveEvent
 			err := json.Unmarshal(message, &moveE)
 			if err != nil {
 				continue
 			}
 
-			moveE.MovePosition.StepLength = 2
-			moveE.MovePosition.Delay = 0.2
 			GlobalSvc.Client.Move(moveE.MovePosition)
 		}
 
+		// 拖拽事件
+		if scrcpy.EventType(event.ControlType) == scrcpy.Up {
+			fmt.Println("Start Up event:", event)
+			var upE scrcpy.UpEvent
+			err := json.Unmarshal(message, &upE)
+			if err != nil {
+				continue
+			}
+
+			GlobalSvc.Client.Up(upE.EventPosition)
+		}
 	}
 }

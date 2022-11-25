@@ -3,7 +3,6 @@ package scrcpy
 import (
 	"fmt"
 	"log"
-	"time"
 )
 
 type EventType uint
@@ -12,8 +11,9 @@ const (
 	Tapped       EventType = 100 + iota // 左键点击
 	DoubleTapped                        // 左键双击
 	Scroll                              // 滚动滚轮
-	Press                               // 长按
-	Move                                // 拖拽
+	Down                                // 长按
+	Move                                // 移动
+	Up                                  // 拖拽
 )
 
 type Event struct {
@@ -27,7 +27,12 @@ type ClickEvent struct {
 	EventPosition
 }
 
-type PressEvent struct {
+type UpEvent struct {
+	Event
+	EventPosition
+}
+
+type DownEvent struct {
 	Event
 	EventPosition
 }
@@ -43,11 +48,8 @@ type MoveEvent struct {
 }
 
 type MovePosition struct {
+	Event
 	EventPosition
-	EndX       int     `json:"end_x"`
-	EndY       int     `json:"end_y"`
-	StepLength int     `json:"step_length"`
-	Delay      float32 `json:"delay"`
 }
 
 // 从前端获取的控制事件时鼠标的位置
@@ -94,8 +96,8 @@ func (client *Client) Scroll(s ScrollPosition) {
 }
 
 // 长按
-func (client *Client) Press(e EventPosition) {
-	fmt.Println("Press", e)
+func (client *Client) Down(e EventPosition) {
+	fmt.Println("Down", e)
 	defer func() {
 		if err := recover(); err != nil {
 			fmt.Println(err)
@@ -106,13 +108,11 @@ func (client *Client) Press(e EventPosition) {
 		return
 	}
 	client.Control.Touch(int(e.X), int(e.Y), ActionDown)
-	time.Sleep(400 * time.Millisecond)
-	client.Control.Touch(int(e.X), int(e.Y), ActionUp)
 }
 
 // 拖拽
 func (client *Client) Move(e MovePosition) {
-	fmt.Println("Press", e)
+	fmt.Println("Move", e)
 	defer func() {
 		if err := recover(); err != nil {
 			fmt.Println(err)
@@ -122,7 +122,19 @@ func (client *Client) Move(e MovePosition) {
 		log.Println("o.Client.Control.ControlConn is nil")
 		return
 	}
-	client.Control.Touch(int(e.X), int(e.Y), ActionDown)
-	time.Sleep(400 * time.Millisecond)
-	client.Control.Touch(int(e.EndX), int(e.EndY), ActionUp)
+	client.Control.Touch(int(e.X), int(e.Y), ActionMove)
+}
+
+func (client *Client) Up(e EventPosition) {
+	fmt.Println("Down", e)
+	defer func() {
+		if err := recover(); err != nil {
+			fmt.Println(err)
+		}
+	}()
+	if client.Control.ControlConn == nil {
+		log.Println("o.Client.Control.ControlConn is nil")
+		return
+	}
+	client.Control.Touch(int(e.X), int(e.Y), ActionUp)
 }
